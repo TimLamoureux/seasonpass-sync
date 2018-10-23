@@ -1,7 +1,10 @@
 //const config = require('config');
 const Sequelize = require('sequelize');
+const blobUtil = require('blob-util');
 
 const masterlist = require('./masterlist');
+const photos = require('./photos');
+const helpers = require('./helpers');
 
 const passholderModel = require('./models/passholder');
 
@@ -32,6 +35,8 @@ class AppSPS {
         this.models = {
             Passholder: passholderModel.init(this.sequelize, Sequelize)
         };
+
+
     }
 
     async sync({source = "", destination = ""}) {
@@ -55,6 +60,75 @@ class AppSPS {
                 console.error(`There was an issue connecting to services. ${err}`);
             });
 
+    }
+
+    async photo( {action, options} ) {
+        await this.sequelize.authenticate()
+            .then(() => {
+                this.sequelize.sync();
+                console.log(`Connected to database and database synced`);
+            })
+            .catch(err => {
+                console.error('Unable to connect to the database:', err);
+            })
+
+        this.models.Passholder.findAll({ where: { photo: null } }).then(passholders => {
+
+            passholders.map( async (ph, i) => {
+
+                let noImport = this.config.get('photos.no_import');
+                let photoSource = ph.photoSource;
+
+                // photoSource contains a keyword which mentions to not attempt importing a photo
+                if (photoSource != null && noImport.includes(photoSource)) {
+                    return;
+                }
+
+                // It is a URL and need to retrieve BLOB
+                if (helpers.isURL(photoSource)) {
+                    try {
+                        let blob = await blobUtil.dataURLToBlob(dataURL);
+                        ph.update({
+                            photo: blob
+                        });
+                    } catch (e) {
+                        console.log(e);
+                        return;
+                    }
+
+                }
+
+                try {
+                    let photo = await photos.findPhoto(ph.firstName, ph.lastName, this.config.get('photos.folders'));
+                    let blob = await photos.toBlob(photo[0]);
+                    ph.update({
+                        photo: blob
+                    });
+                    return;
+
+                } catch (e) {
+                    // non critical error. Photo not found
+                }
+
+
+                /*photos.findPhoto(ph.firstName, ph.lastName, this.config.get('photos.folders')).then(
+                    (photo) => {
+                        photos.toBlob(photo[0]).then( blob => {
+
+
+                            let stop;
+                        }, err => {
+                            console.error(`Error trying to convert ${photo[0]} to Blob`);
+                        });
+                    },
+                    (err) => {
+                        //console.error(err);
+                    }
+                );*/
+
+
+            });
+        })
     }
 }
 

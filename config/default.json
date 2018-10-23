@@ -23,7 +23,7 @@
       "folder1",
       "folder2"
     ],
-    "dont_import": []
+    "no_import": []
   },
   "database": {
     "file": "db.sqlite",

@@ -22,13 +22,17 @@ program
     .description('Synchronize from source to destination. Currently only support Masterlist -> db')
     .action((source, destination, options) => {
         app.sync( {source: "masterlist", destination: "db"} );
+
+        // TODO: Remove me when photo is implemented.
+        //app.photo( {action: "import", options: null} );
     });
 
 program
     .command('photo [import|export]',)
     .description('Import or Export season pass photos into Card DB')
     .action((action, options) => {
-        app.photo( {action: action, options: options} );
+        // TODO: Update action to var
+        app.photo( {action: "import", options: options} );
     });
 
 program.parse(process.argv);

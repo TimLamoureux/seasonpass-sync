@@ -3,7 +3,7 @@ let fs = require('fs');
 
 async function findPhoto(first_name, last_name, where = []) {
     return new Promise( (resolve, reject) => {
-        if (first_name == undefined || last_name == undefined) reject();
+        if (first_name == undefined || last_name == undefined) reject("First and Last name must be provided to locate a photo.");
 
         where.map( (location) => {
             // Trying to find in Google Drive
@@ -17,26 +17,30 @@ async function findPhoto(first_name, last_name, where = []) {
                     resolve(files);
                 }
                 else {
-                    console.log(`No file was found for ${first_name} ${last_name}`)
+                    reject(`No file was found for ${first_name} ${last_name}`);
                 }
+            }, err => {
+
             });
         } );
     })
 }
 
 function findPhotoFromDisk(first_name, last_name, dir) {
-
-    return new Promise( resolve => {
+    return new Promise( (resolve, reject) => {
         let regex = RegExp(`^(?=.*?(${first_name.replace(/[-\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\$&')}))(?=.*?(${last_name.replace(/[-\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\$&')})).*`, 'igm')
 
         if (fs.existsSync(dir)) {
             find.file(regex, dir, (files) => {
                 resolve(files);
             })
+                .error( (err) => {
+                    reject(err);
+                });
         }
-
-    }, reject => {
-        console.error(reject);
+        else {
+            reject(`Directory ${dir} does not exist.`);
+        }
     });
 
 
