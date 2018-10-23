@@ -2,8 +2,8 @@ const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
 // If modifying these scopes, delete token.json.
-//const SCOPES = config.get('google_api.scopes');
-//const TOKEN_PATH = config.get('google_api.token_path');
+//const SCOPES = this.app.config.get('google_api.scopes');
+//const TOKEN_PATH = this.app.config.get('google_api.token_path');
 
 /**
  * Masterlist represents a Googlesheet with passholder definitions
@@ -66,21 +66,65 @@ class MasterList {
                 // Store the token to disk for later program executions
                 fs.writeFile(this.app.config.get('google_api.token_path'), JSON.stringify(token), (err) => {
                     if (err) console.error(err);
-                    console.success(`New authentication token stored to ${this.app.config.get('google_api.token_path')}`);
+                    console.log(`New authentication token stored to ${this.app.config.get('google_api.token_path')}`);
                 });
             });
         });
     }
 
     init() {
-        return new Promise(async (resolve, reject) => {
-            self = this;
-            passholders = getPassHolders().then((res) => {
-                console.log("Fetched passholders");
-                self.passholders = res;
-                resolve(res);
-            });
+        return new Promise((resolve, reject) => {
+            let self = this;
+            try {
+                this.passholdersFromSheet().then((res) => {
+                    console.log("Fetched passholders");
+                    self.passholders = res;
+                    resolve(res);
+                }, err => {
+                    console.error(err);
+                });
+            } catch(e) {
+                console.err(`Error occured: ${e}`);
+                console.err(e.stack);}
         })
+    }
+
+    passholdersFromSheet() {
+        return new Promise((resolve, reject) => {
+            // workaround for issues with this.auth in google.sheets({version: 'v4', this.auth});
+            const auth = this.auth;
+            const sheets = google.sheets({version: 'v4', auth});
+            sheets.spreadsheets.values.get({
+                spreadsheetId: this.app.config.get('masterlist.spreadsheet_id'),
+                range: this.app.config.get('masterlist.sheet_id'),
+            }, (err, res) => {
+                if (err)
+                    reject(err) ;
+
+                let rows = res.data.values;
+
+                if (rows.length) {
+                    let passholders = [];
+                    rows.reduce((acc, row, idx, rows) => {
+
+                        // Only return what comes below the header row
+                        if (idx <= this.app.config.get('masterlist.header_row') - 1) return acc;
+
+                        // Removing 1 because row index starts at 1 in Google Sheets interface
+                        let rowTitles = rows[this.app.config.get('masterlist.header_row') - 1];
+
+                        this.app.models.Passholder.bindFromRow( {titles: rowTitles, data: row} );
+
+                        return acc;
+                    }, passholders);
+
+                    //return passholders;
+                    resolve(passholders);
+                } else {
+                    reject('No passholders found in Masterlist');
+                }
+            });
+        });
     }
 }
 

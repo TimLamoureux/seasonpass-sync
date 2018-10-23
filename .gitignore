@@ -59,5 +59,10 @@ typings/
 
 # next.js build output
 .next
-/build-pkg/
+
+
+# Project specific
 /config/local.json
+/build*/
+*token*.json
+*.sqlite

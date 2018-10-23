@@ -13,7 +13,8 @@ class AppSPS {
         this.sequelize = new Sequelize('passholders', this.config.get('database.login'), this.config.get('database.password'), {
             host: 'localhost',
             dialect: 'sqlite',
-            //operatorsAliases: false,
+            operatorsAliases: false,
+            logging: false,
 
             pool: {
                 max: 5,
@@ -31,27 +32,29 @@ class AppSPS {
         this.models = {
             Passholder: passholderModel.init(this.sequelize, Sequelize)
         };
-
-        /*await this.sequelize
-            .authenticate()
-            .then(() => {
-                console.log('Connection has been established successfully.');
-            })
-            .catch(err => {
-                console.error('Unable to connect to the database:', err);
-            });*/
-
     }
 
     async sync({source = "", destination = ""}) {
         this.masterlist = new masterlist({app: this});
 
         Promise.all([
-            this.masterlist.authorize(this.config.get('google_api.credentials')),
+            this.masterlist.authorize(this.config.get('google_api.credentials'))
+                .then(res => this.masterlist.init()),
             this.sequelize.authenticate()
-        ]).then(values => {
-            console.log("Ready to sync...");
-        });
+                .then(() => {
+                    this.sequelize.sync();
+                })
+                .catch(err => {
+                    console.error('Unable to connect to the database:', err);
+                })
+        ])
+            .then(values => {
+                console.log("Ready to sync...");
+            })
+            .catch(err => {
+                console.error(`There was an issue connecting to services. ${err}`);
+            });
+
     }
 }
 

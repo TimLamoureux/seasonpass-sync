@@ -14,7 +14,8 @@
       "redirect_uris": [
         "urn:ietf:wg:oauth:2.0:oob",
         "http://localhost"
-      ]
+      ],
+      "offline": true
     }
   },
   "photos": {
@@ -33,6 +34,22 @@
   "masterlist": {
     "spreadsheet_id": "",
     "sheet_id": "",
-    "header_row": 1
+    "header_row": 1,
+    "bindings": {
+      "masterlist_id": "masterlistId",
+      "first_name": "firstName",
+      "last_name": "lastName",
+      "type": "passType",
+      "phone": "phone",
+      "email": "email",
+      "emergency_number": "emergencyContact",
+      "waiver": "waiver",
+      "photo_upload": "photoSource",
+      "printed_pass": "printed",
+      "platform": "platform",
+      "notes": "notes",
+      "amnt_paid": "notes"
+
+    }
   }
 }

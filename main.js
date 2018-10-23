@@ -24,12 +24,12 @@ program
         app.sync( {source: "masterlist", destination: "db"} );
     });
 
-/*program
+program
     .command('photo [import|export]',)
     .description('Import or Export season pass photos into Card DB')
     .action((action, options) => {
-        photo(action, options);
-    });*/
+        app.photo( {action: action, options: options} );
+    });
 
 program.parse(process.argv);
 
