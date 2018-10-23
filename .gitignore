@@ -66,4 +66,5 @@ typings/
 /build*/
 *token*.json
 *.sqlite
-/photos_*/
+/*photos*/
+/*pictures*/
