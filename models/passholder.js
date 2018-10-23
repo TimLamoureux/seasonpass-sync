@@ -10,7 +10,7 @@ class Passholder extends Sequelize.Model {
         return super.init(
             {
                 masterlistId: {
-                    type: Sequelize.INTEGER
+                    type: Sequelize.STRING
                 },
                 firstName: {
                     type: Sequelize.STRING,
@@ -106,6 +106,7 @@ class Passholder extends Sequelize.Model {
                 ) {
                     this.create(passholder)
                         .then( (something) => {
+                            console.log(`Passholder ${passholder.firstName} ${passholder.lastName} created`)
                             resolve("Passholder created")
                         });
                 }
