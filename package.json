@@ -1,0 +1,38 @@
+{
+  "name": "seasonpass-sync",
+  "main": "main.js",
+  "bin": "main.js",
+  "version": "0.2.0",
+  "dependencies": {
+    "commander": "^2.19.0",
+    "config": "^2.0.1",
+    "googleapis": "^34.0.0",
+    "sequelize": "^4.41.0",
+    "sqlite3": "^4.0.3"
+  },
+  "devDependencies": {
+    "null-loader": "^0.1.1",
+    "webpack": "^1.14.0",
+    "xbin-loader": "^1.0.1"
+  },
+  "description": "Command line utility to allow syncing of data between the Sheets Masterlist and a sqlite database used in the Card Software",
+  "repository": "git@github.com:aparadox/seasonpass-sync.git",
+  "author": "Thimothe Lamoureux",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "bundle": "webpack",
+    "start": "node main.js",
+    "build-package": "pkg package.json",
+    "pkg": "pkg --out-path './build-pkg/' --debug package.json > ./build-pkg/build.log",
+    "nexe": "export PYTHON=python2.7; nexe main.js -o './build-nexe/seasonpass-sync' --target 'linux-x64-10.11.0' > build-nexe/build.log",
+    "nexe-win": "export PYTHON=python2.7; nexe main.js -o './build-nexe/seasonpass-sync.exe' --target 'windows-x64-10.11.0' > build-nexe/build.log"
+  },
+  "binary": {
+    "module_name": "node_sqlite3",
+    "module_path": "./lib/binding/{node_abi}-{platform}-{arch}",
+    "host": "https://mapbox-node-binary.s3.amazonaws.com",
+    "remote_path": "./{name}/v{version}/{toolset}/",
+    "package_name": "{node_abi}-{platform}-{arch}.tar.gz"
+  }
+}
