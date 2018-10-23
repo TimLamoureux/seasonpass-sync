@@ -90,7 +90,6 @@ class Passholder extends Sequelize.Model {
             try {
                 this.create(passholder)
                     .then( (something) => {
-
                         resolve("Passholder created")
                     });
             } catch (e) {

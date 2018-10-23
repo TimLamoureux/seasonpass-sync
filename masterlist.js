@@ -9,8 +9,8 @@ const {google} = require('googleapis');
  * Masterlist represents a Googlesheet with passholder definitions
  */
 class MasterList {
-    constructor( {app = null} ) {
-        if ( app == null ) return;
+    constructor({app = null}) {
+        if (app == null) return;
         this.app = app;
 
     }
@@ -83,9 +83,10 @@ class MasterList {
                 }, err => {
                     console.error(err);
                 });
-            } catch(e) {
+            } catch (e) {
                 console.err(`Error occured: ${e}`);
-                console.err(e.stack);}
+                console.err(e.stack);
+            }
         })
     }
 
@@ -94,36 +95,57 @@ class MasterList {
             // workaround for issues with this.auth in google.sheets({version: 'v4', this.auth});
             const auth = this.auth;
             const sheets = google.sheets({version: 'v4', auth});
-            sheets.spreadsheets.values.get({
-                spreadsheetId: this.app.config.get('masterlist.spreadsheet_id'),
-                range: this.app.config.get('masterlist.sheet_id'),
-            }, (err, res) => {
-                if (err)
-                    reject(err) ;
 
-                let rows = res.data.values;
+            try {
+                sheets.spreadsheets.values.get({
+                    spreadsheetId: this.app.config.get('masterlist.spreadsheet_id'),
+                    range: this.app.config.get('masterlist.sheet_id'),
+                },  (err, res) => {
+                    if (err) {
+                        try {
+                            fs.unlink(this.app.config.get('google_api.token_path'), async (err) => {
+                                if (err) reject(err);
 
-                if (rows.length) {
-                    let passholders = [];
-                    rows.reduce((acc, row, idx, rows) => {
+                                console.log('Deleted google access token. Attempting to re-authorize.');
+                                try {
+                                    await this.passholdersFromSheet();
+                                    resolve("Connected");
+                                } catch (e) {
+                                    reject(e);
+                                }
+                            })
+                        } catch (e) {
+                            console.error(e.stack);
+                        }
+                    }
 
-                        // Only return what comes below the header row
-                        if (idx <= this.app.config.get('masterlist.header_row') - 1) return acc;
+                    let rows = res.data.values;
 
-                        // Removing 1 because row index starts at 1 in Google Sheets interface
-                        let rowTitles = rows[this.app.config.get('masterlist.header_row') - 1];
+                    if (rows.length) {
+                        let passholders = [];
+                        // TODO: Map instead of reduce
+                        rows.reduce((acc, row, idx, rows) => {
 
-                        this.app.models.Passholder.bindFromRow( {titles: rowTitles, data: row} );
+                            // Only return what comes below the header row
+                            if (idx <= this.app.config.get('masterlist.header_row') - 1) return acc;
 
-                        return acc;
-                    }, passholders);
+                            // Removing 1 because row index starts at 1 in Google Sheets interface
+                            let rowTitles = rows[this.app.config.get('masterlist.header_row') - 1];
 
-                    //return passholders;
-                    resolve(passholders);
-                } else {
-                    reject('No passholders found in Masterlist');
-                }
-            });
+                            this.app.models.Passholder.bindFromRow({titles: rowTitles, data: row});
+
+                            return acc;
+                        }, passholders);
+
+                        //return passholders;
+                        resolve(passholders);
+                    } else {
+                        reject('No passholders found in Masterlist');
+                    }
+                });
+            } catch (e) {
+                console.error(e.stack);
+            }
         });
     }
 }

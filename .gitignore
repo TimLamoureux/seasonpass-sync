@@ -68,3 +68,5 @@ typings/
 *.sqlite
 /*photos*/
 /*pictures*/
+/.idea/
+yarn.lock

@@ -1,6 +1,7 @@
 //const config = require('config');
 const Sequelize = require('sequelize');
-const blobUtil = require('blob-util');
+/*const request = require('request').defaults({ encoding: null });*/
+const fetch = require('node-fetch');
 
 const masterlist = require('./masterlist');
 const photos = require('./photos');
@@ -54,7 +55,7 @@ class AppSPS {
                 })
         ])
             .then(values => {
-                console.log("Ready to sync...");
+                //console.log("Ready to sync...");
             })
             .catch(err => {
                 console.error(`There was an issue connecting to services. ${err}`);
@@ -62,7 +63,7 @@ class AppSPS {
 
     }
 
-    async photo( {action, options} ) {
+    async photo({action, options}) {
         await this.sequelize.authenticate()
             .then(() => {
                 this.sequelize.sync();
@@ -72,9 +73,9 @@ class AppSPS {
                 console.error('Unable to connect to the database:', err);
             })
 
-        this.models.Passholder.findAll({ where: { photo: null } }).then(passholders => {
+        this.models.Passholder.findAll({where: {photo: null}}).then(passholders => {
 
-            passholders.map( async (ph, i) => {
+            passholders.map(async (ph, i) => {
 
                 let noImport = this.config.get('photos.no_import');
                 let photoSource = ph.photoSource;
@@ -87,12 +88,29 @@ class AppSPS {
                 // It is a URL and need to retrieve BLOB
                 if (helpers.isURL(photoSource)) {
                     try {
-                        let blob = await blobUtil.dataURLToBlob(dataURL);
+                        /*let blob = await blobUtil.imgSrcToBlob(photoSource);
                         ph.update({
                             photo: blob
-                        });
+                        });*/
+                        /*request.get(photoSource, function (error, response, body) {
+                            if (!error && response.statusCode == 200) {
+                                let data = new Buffer(body).toString('base64');
+                                let byte[] decodedByte = Base64.decode(data, 0);
+                                console.log(data);
+                            }
+                        });*/
+                        (async () => {
+                            let res = await fetch(photoSource);
+                            let blob = await res.buffer();
+                            await ph.update({
+                                photo: blob
+                            }).then( (some) => {
+
+                            });
+
+                        })()
                     } catch (e) {
-                        console.log(e);
+                        console.error(e);
                         return;
                     }
 
