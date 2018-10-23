@@ -29,11 +29,11 @@ class MasterList {
         // Check if we have previously stored a token.
         return new Promise((resolve, reject) => {
             try {
-                fs.readFile(this.app.config.get('google_api.token_path'), (err, token) => {
+                fs.readFile(this.app.config.get('google_api.token_path'), async (err, token) => {
                     if (err)
                         return this.getNewToken(this.auth);
 
-                    this.auth.setCredentials(JSON.parse(token));
+                    await this.auth.setCredentials(JSON.parse(token));
                     resolve("Google Sheet API Connected");
                 });
             } catch (e) {
@@ -67,6 +67,7 @@ class MasterList {
                 fs.writeFile(this.app.config.get('google_api.token_path'), JSON.stringify(token), (err) => {
                     if (err) console.error(err);
                     console.log(`New authentication token stored to ${this.app.config.get('google_api.token_path')}`);
+                    this.auth.setCredentials(JSON.parse(oAuth2Client.credentials));
                 });
             });
         });
@@ -108,16 +109,20 @@ class MasterList {
 
                                 console.log('Deleted google access token. Attempting to re-authorize.');
                                 try {
+                                    await this.authorize(this.app.config.get('google_api.credentials'))
                                     await this.passholdersFromSheet();
-                                    resolve("Connected");
+                                    await resolve("Connected");
                                 } catch (e) {
-                                    reject(e);
+                                    console.log(e);
                                 }
                             })
                         } catch (e) {
                             console.error(e.stack);
                         }
                     }
+
+                    if (res == undefined)
+                        reject("Response was undefined");
 
                     let rows = res.data.values;
 

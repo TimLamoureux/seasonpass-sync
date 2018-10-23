@@ -1,6 +1,7 @@
 
 const config = require('config');
 const Sequelize = require("sequelize");
+const helpers = require('../helpers');
 
 const bindings = config.get('masterlist.bindings');
 
@@ -21,7 +22,10 @@ class Passholder extends Sequelize.Model {
                 },
                 printed: {
                     type: Sequelize.BOOLEAN,
-                    defaultValue: false
+                    defaultValue: false,
+                    set(val) {
+                        this.setDataValue('printed', helpers.strToBool(val));
+                    }
                 },
                 passType: {
                     type: Sequelize.STRING,
@@ -42,10 +46,16 @@ class Passholder extends Sequelize.Model {
                     type: Sequelize.BLOB
                 },
                 waiver: {
-                    type: Sequelize.BOOLEAN
+                    type: Sequelize.BOOLEAN,
+                    set(val) {
+                        this.setDataValue('waiver', helpers.strToBool(val));
+                    }
                 },
                 pickedUp: {
                     type: Sequelize.BOOLEAN,
+                    set(val) {
+                        this.setDataValue('pickedUp', helpers.strToBool(val));
+                    },
                     defaultValue: false
                 },
                 notes: {
@@ -88,10 +98,17 @@ class Passholder extends Sequelize.Model {
             }
 
             try {
-                this.create(passholder)
-                    .then( (something) => {
-                        resolve("Passholder created")
-                    });
+                if (
+                    passholder.firstName != "" &&
+                    passholder.lastName != "" &&
+                    passholder.firstName != null &&
+                    passholder.lastName != null
+                ) {
+                    this.create(passholder)
+                        .then( (something) => {
+                            resolve("Passholder created")
+                        });
+                }
             } catch (e) {
                 console.error(`Error adding passholder to DB. ${e}\n${e.stack}`);
                 reject(e);
