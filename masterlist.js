@@ -31,9 +31,11 @@ class MasterList {
             try {
                 fs.readFile(this.app.config.get('google_api.token_path'), async (err, token) => {
                     if (err)
-                        return this.getNewToken(this.auth);
+                        token = await this.getNewToken(this.auth);
+                    else
+                        token = JSON.parse(token);
 
-                    await this.auth.setCredentials(JSON.parse(token));
+                    await this.auth.setCredentials(token);
                     resolve("Google Sheet API Connected");
                 });
             } catch (e) {
@@ -50,24 +52,29 @@ class MasterList {
      */
     getNewToken(oAuth2Client) {
         const authUrl = oAuth2Client.generateAuthUrl({
-            access_type: 'online',
+            access_type: 'offline',
             scope: this.app.config.get('google_api.scopes'),
+            approval_prompt: "force"
         });
         console.log('Authorize this app by visiting this url:', authUrl);
         const rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
         });
-        rl.question('Enter the code from that page here: ', (code) => {
-            rl.close();
-            oAuth2Client.getToken(code, (err, token) => {
-                if (err) return console.error('Error while trying to retrieve access token', err);
-                oAuth2Client.setCredentials(token);
-                // Store the token to disk for later program executions
-                fs.writeFile(this.app.config.get('google_api.token_path'), JSON.stringify(token), (err) => {
-                    if (err) console.error(err);
-                    console.log(`New authentication token stored to ${this.app.config.get('google_api.token_path')}`);
-                    this.auth.setCredentials(JSON.parse(oAuth2Client.credentials));
+
+        return new Promise( (resolve, reject) => {
+            rl.question('Enter the code from that page here: ', (code) => {
+                rl.close();
+                oAuth2Client.getToken(code, (err, token) => {
+                    if (err) reject(`Error while trying to retrieve access token ${err}`);
+
+                    oAuth2Client.setCredentials(token);
+                    // Store the token to disk for later program executions
+                    fs.writeFile(this.app.config.get('google_api.token_path'), JSON.stringify(token), (err) => {
+                        if (err) reject(err);
+                        console.log(`New authentication token stored to ${this.app.config.get('google_api.token_path')}`);
+                        resolve(oAuth2Client.credentials);
+                    });
                 });
             });
         });
@@ -129,7 +136,7 @@ class MasterList {
                     if (rows.length) {
                         let passholders = [];
                         // TODO: Map instead of reduce
-                        rows.reduce((acc, row, idx, rows) => {
+                        rows.reduce( async (acc, row, idx, rows) => {
 
                             // Only return what comes below the header row
                             if (idx <= this.app.config.get('masterlist.header_row') - 1) return acc;
@@ -137,7 +144,14 @@ class MasterList {
                             // Removing 1 because row index starts at 1 in Google Sheets interface
                             let rowTitles = rows[this.app.config.get('masterlist.header_row') - 1];
 
-                            this.app.models.Passholder.bindFromRow({titles: rowTitles, data: row});
+                            try {
+                                let ph = await this.app.models.Passholder.bindFromRow({titles: rowTitles, data: row});
+                                acc[ph.id] = ph;
+                            } catch (e) {
+                                console.error(e);
+                                return acc;
+                            }
+
 
                             return acc;
                         }, passholders);
