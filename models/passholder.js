@@ -73,9 +73,26 @@ class Passholder extends Sequelize.Model {
             },
             {
                 sequelize,
-                timestamps: false
+                timestamps: false,
+                hooks: {
+                    beforeValidate: (ph, options) => {
+                        // Force the use of setter method. Build or Create do not use the setters.
+                        ph.set('printed', ph.printed);
+                        ph.set('waiver', ph.waiver);
+                        ph.set('pickedUp', ph.pickedUp);
+                    }
+                }
             }
         );
+    }
+
+    static validatePassHolder(passholder) {
+        if(!passholder) return false;
+
+        if(!passholder.firstName) return false;
+        if(!passholder.lastName) return false;
+
+        return true;
     }
 
     static bindFromRow_old({titles = null, data = null}) {

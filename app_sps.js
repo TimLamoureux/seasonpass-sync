@@ -14,7 +14,7 @@ class AppSPS {
 
     constructor(params) {
         Object.assign(this, params);
-        this.sequelize = new Sequelize('passholders', this.config.get('database.login'), this.config.get('database.password'), {
+        this.sequelize = new Sequelize('passholders', this.config.get('card_db.login'), this.config.get('card_db.password'), {
             host: 'localhost',
             dialect: 'sqlite',
             operatorsAliases: false,
@@ -35,7 +35,7 @@ class AppSPS {
             },
 
             // SQLite only
-            storage: this.config.get('database.file'),
+            storage: this.config.get('card_db.file'),
             typeValidation: true
         });
 
@@ -55,10 +55,24 @@ class AppSPS {
 
         Promise.all([
             this.masterlist.authorize(this.config.get('google_api.credentials'))
-                .then(res => this.masterlist.init()),
-            this.sequelize.authenticate()
+                .then(res => {
+                    console.log(res)
+                    return this.masterlist.init()
+                }),
+            this.sequelize.authenticate().then( (res) => {
+                console.log("Connected to DB");
+            }).catch( (e) => {
+                console.error(e); 
+            } )
         ])
-            .then(() => {
+            .then(async (done) => {
+                this.models.Passholder.findAll({ where: {
+                    masterlistId: {
+                        [this.sequelize.Op.gt]: 0
+                      }
+                }}).then( (some) => {
+                    console.log(`There are ${some.length} records in the DB`)
+                })
                 let phPromises = this.masterlist.passholders.reduce((acc, ph) => {
                     acc.push(new Promise((resolve, reject) => {
                             this.models.Passholder.findOrBuild({
@@ -66,8 +80,19 @@ class AppSPS {
                                     masterlistId: ph.masterlistId,
                                 }
                             }).then((found) => {
+                                // found[1] is same as found[0].isNewRecord
+                                //TODO: Remove me in the future
+                                if (found[0].dataValues.masterlistId == 938 || 
+                                    found[0].dataValues.masterlistId == 939 ) {
+                                    let stop;
+                                }
+
                                 if (found[0].isNewRecord) {
                                     found[0].dataValues = Object.assign(found[0].dataValues, ph);
+                                    console.log(`Creating new DB record for (${ph.masterlistId}) ${ph.firstName} ${ph.lastName}`)
+                                }
+                                else {
+
                                 }
                                 resolve(found[0]);
                             }, (err) => {

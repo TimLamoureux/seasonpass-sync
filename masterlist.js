@@ -89,14 +89,16 @@ class MasterList {
                     self.passholders = res;
                     resolve(res);
                 }, err => {
-                    console.error(err);
+                    reject(err);
                 });
-            } catch (e) {
-                console.err(`Error occured: ${e}`);
-                console.err(e.stack);
+            } catch (err) {
+                reject(err);
+
             }
         })
     }
+
+
 
     passholdersFromSheet() {
         return new Promise((resolve, reject) => {
@@ -136,7 +138,7 @@ class MasterList {
                     if (rows.length) {
                         let passholders = [];
                         // TODO: Map instead of reduce
-                        rows.reduce( async (acc, row, idx, rows) => {
+                        rows.reduce( (acc, row, idx, rows) => {
 
                             // Only return what comes below the header row
                             if (idx <= this.app.config.get('masterlist.header_row') - 1) return acc;
@@ -145,14 +147,13 @@ class MasterList {
                             let rowTitles = rows[this.app.config.get('masterlist.header_row') - 1];
 
                             try {
-                                let ph = await this.app.models.Passholder.bindFromRow({titles: rowTitles, data: row});
-                                acc[ph.id] = ph;
+                                let ph = this.app.models.Passholder.bindFromRow_old({titles: rowTitles, data: row});
+                                if (this.app.models.Passholder.validatePassHolder(ph))
+                                    acc[ph.masterlistId] = ph;
                             } catch (e) {
                                 console.error(e);
                                 return acc;
                             }
-
-
                             return acc;
                         }, passholders);
 

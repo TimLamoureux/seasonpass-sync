@@ -25,8 +25,8 @@
     ],
     "no_import": []
   },
-  "database": {
-    "file": "db.sqlite",
+  "card_db": {
+    "file": "",
     "login": "",
     "password": "",
     "passholder_table": "passholders"
