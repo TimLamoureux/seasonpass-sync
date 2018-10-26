@@ -3,11 +3,16 @@ const AppSPS = require('./app_sps');
 const config = require('config');
 const program = require('commander');
 const Sequelize = require('sequelize');
+const inquire = require('inquirer');
 
 //const PassHolder = require('./passholder');
-// Photo, Masterlist
 
 const app = new AppSPS({config: config});
+
+
+
+
+
 
 
 // Program and commands initialization

@@ -19,6 +19,13 @@ class AppSPS {
             dialect: 'sqlite',
             operatorsAliases: false,
             logging: false,
+            retry: {
+                match: [
+                    /SQLITE_BUSY/,
+                ],
+                name: 'query',
+                max: 5
+            },
 
             pool: {
                 max: 5,
@@ -37,6 +44,9 @@ class AppSPS {
             Passholder: passholderModel.init(this.sequelize, Sequelize)
         };
 
+        // Sync all defined models to the DB.
+        this.sequelize.sync();
+
 
     }
 
@@ -47,15 +57,30 @@ class AppSPS {
             this.masterlist.authorize(this.config.get('google_api.credentials'))
                 .then(res => this.masterlist.init()),
             this.sequelize.authenticate()
-                .then(() => {
-                    this.sequelize.sync();
-                })
-                .catch(err => {
-                    console.error('Unable to connect to the database:', err);
-                })
         ])
-            .then(values => {
-                //console.log("Ready to sync...");
+            .then(() => {
+                let phPromises = this.masterlist.passholders.reduce((acc, ph) => {
+                    acc.push(new Promise((resolve, reject) => {
+                            this.models.Passholder.findOrBuild({
+                                where: {
+                                    masterlistId: ph.masterlistId,
+                                }
+                            }).then((found) => {
+                                if (found[0].isNewRecord) {
+                                    found[0].dataValues = Object.assign(found[0].dataValues, ph);
+                                }
+                                resolve(found[0]);
+                            }, (err) => {
+                                reject(err);
+                            })
+                        })
+                    );
+                    return acc;
+                }, []);
+
+                Promise.all(phPromises).then((some) => {
+                    some.map( (ph) => ph.save() );
+                });
             })
             .catch(err => {
                 console.error(`There was an issue connecting to services. ${err}`);
@@ -104,7 +129,7 @@ class AppSPS {
                             let blob = await res.buffer();
                             await ph.update({
                                 photo: blob
-                            }).then( (some) => {
+                            }).then((some) => {
 
                             });
 
