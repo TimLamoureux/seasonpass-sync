@@ -5,7 +5,6 @@ const fetch = require('node-fetch');
 
 const masterlist = require('./masterlist');
 const photos = require('./photos');
-const photoUpdatePromises = require('./photoUpdatePromises');   // TODO: Poor design...
 const helpers = require('./helpers');
 
 const passholderModel = require('./models/passholder');
@@ -119,11 +118,6 @@ class AppSPS {
                 console.error('Unable to connect to the database:', err);
             })
 
-
-        // How Many images have been fetched
-        let currentFetch = 0;
-        this.photoUpdatePromises = new photoUpdatePromises();
-
         this.models.Passholder.findAll({
             where: {
                 photo: null, 
@@ -193,18 +187,6 @@ class AppSPS {
                 .catch( (e) => {
                     console.error(e);
                 });
-
-                            /*this.photoUpdatePromises.add( new Promise( (resolve, reject) => {
-                                ph.update({
-                                    photo: blob
-                                })
-                                .then((updated) => {
-                                    resolve(`Added photo for (${updated.masterlistId}) ${updated.firstName} ${updated.lastName}`);
-                                })
-                                .catch( (e) => {
-                                    reject(e);
-                                });
-                            }));*/
             }, this);
         });
     }
