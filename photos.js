@@ -1,7 +1,7 @@
 let find = require('find');
 let fs = require('fs');
 
-async function findPhoto(first_name, last_name, where = []) {
+function findPhoto(first_name, last_name, where = []) {
     return new Promise( (resolve, reject) => {
         if (first_name == undefined || last_name == undefined) reject("First and Last name must be provided to locate a photo.");
 
@@ -10,20 +10,21 @@ async function findPhoto(first_name, last_name, where = []) {
             if (location.localeCompare("drive", undefined, {ignorePunctuation: true}) == 0) {
                 return findPhotoFromDrive();
             }
-            findPhotoFromDisk(first_name, last_name, location).then( files => {
+            findPhotoFromDisk(first_name, last_name, location)
+            .then( files => {
                 // Good job, we found some photos for this passholder!
                 if (files.length > 0) {
                     console.log(`Found photo for ${first_name} ${last_name} File: ${files[0]}`);
                     resolve(files);
                 }
-                else {
-                    reject(`No file was found for ${first_name} ${last_name}`);
-                }
-            }, err => {
-
+            })
+            .catch(err => {
+                reject(err);
             });
-        } );
-    })
+        });
+
+        //reject(`No file was found for ${first_name} ${last_name}`);
+    });
 }
 
 function findPhotoFromDisk(first_name, last_name, dir) {

@@ -5,15 +5,13 @@ const fetch = require('node-fetch');
 
 const masterlist = require('./masterlist');
 const photos = require('./photos');
+const photoUpdatePromises = require('./photoUpdatePromises');   // TODO: Poor design...
 const helpers = require('./helpers');
 
 const passholderModel = require('./models/passholder');
 
-let updateCount = 0;
-
 
 class AppSPS {
-
     constructor(params) {
         Object.assign(this, params);
         this.sequelize = new Sequelize('passholders', this.config.get('card_db.login'), this.config.get('card_db.password'), {
@@ -129,6 +127,7 @@ class AppSPS {
 
         // How Many images have been fetched
         let currentFetch = 0;
+        this.photoUpdatePromises = new photoUpdatePromises();
 
         this.models.Passholder.findAll({
             where: {
@@ -138,17 +137,20 @@ class AppSPS {
                     [this.sequelize.Op.notIn]: this.config.get('photos.dont_import')
                 }
             }, 
-            limit: 300
+            order: [
+                ['masterlistId', 'DESC']
+            ],
+            limit: 2000
         })
         .then(passholders => {
             console.log(`Fetched ${passholders.length} passholders to look for pictures`);
-            passholders.map(async (ph, i) => {
-                
-                let noImport = this.config.get('photos.dont_import');
+            
+            passholders.map((ph, i) => {
+
                 let photoSource = ph.photoSource;
 
                 // photoSource contains a keyword which mentions to not attempt importing a photo
-                for (let refuse of noImport) {
+                for (let refuse of this.config.get('photos.dont_import')) {
                     if (photoSource != null && photoSource.startsWith(refuse))
                         return;
                 }
@@ -162,45 +164,54 @@ class AppSPS {
                         (async () => {
                             let res = await fetch(photoSource);
                             let blob = await res.buffer();
-                            await ph.update({
+                            ph.update({
                                 photo: blob
-                            }).then((some) => {
-
-                            });
+                            })
+                            .then((updated) => {
+                                resolve(updated)
+                            })
+                            .catch((err) => reject(err));
                         })()
                     } catch (e) {
                         console.error(e);
-                        return;
                     }
                 }
 
-                try {
-                    let photo = await photos.findPhoto(ph.firstName, ph.lastName, this.config.get('photos.folders'));
-                    
-                    let blob = await photos.toBlob(photo[0]);
-                    
-                    currentFetch++;
 
-                    // TODO: Fix me. Hacked to slow down updates in DB
-
+                photos.findPhoto(ph.firstName, ph.lastName, this.config.get('photos.folders'))
+                .then( (files) => {
+                    return photos.toBlob(files[0]);
+                } )
+                .then((blob) => {
                     ph.update({
                         photo: blob
-                    }).then((updated) => {
+                    })
+                    .then((updated) => {
                         console.log(`Added photo for (${updated.masterlistId}) ${updated.firstName} ${updated.lastName}`);
-                        })
-                        .catch( (e) => {
-                            console.error(e);
-                        });
+                    }, (err) => {
+                        console.error(err);
+                    })
+                    .catch( (e) => {
+                        console.error(e);
+                    });
+                })
+                .catch( (e) => {
+                    console.error(e);
+                });
 
-
-                    return;
-
-                } catch (e) {
-                    // non critical error. Photo not found
-                    //console.error(e);
-                }
-            });
-        })
+                            /*this.photoUpdatePromises.add( new Promise( (resolve, reject) => {
+                                ph.update({
+                                    photo: blob
+                                })
+                                .then((updated) => {
+                                    resolve(`Added photo for (${updated.masterlistId}) ${updated.firstName} ${updated.lastName}`);
+                                })
+                                .catch( (e) => {
+                                    reject(e);
+                                });
+                            }));*/
+            }, this);
+        });
     }
 }
 
