@@ -35,9 +35,10 @@ program
 program
     .command('photo [import|export]',)
     .description('Import or Export season pass photos into Card DB')
-    .action((action, options) => {
+    .action(async (action, options) => {
         // TODO: Update action to var
-        app.photo( {action: "import", options: options} );
+        await app.photo( {action: "import", options: options} );
+        console.log(`Attempted ${app.updateCount} photo updates`)
     });
 
 program.parse(process.argv);
@@ -53,14 +54,14 @@ function exitHandler(options, exitCode) {
     if (options.exit) process.exit();
 }
 //do something when app is closing
-process.on('exit', exitHandler.bind(null,{cleanup:true}));
+process.on('exit', exitHandler.bind(this,{cleanup:true}));
 
 //catches ctrl+c event
-process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+process.on('SIGINT', exitHandler.bind(this, {exit:true}));
 
 // catches "kill pid" (for example: nodemon restart)
-process.on('SIGUSR1', exitHandler.bind(null, {exit:true}));
-process.on('SIGUSR2', exitHandler.bind(null, {exit:true}));
+process.on('SIGUSR1', exitHandler.bind(this, {exit:true}));
+process.on('SIGUSR2', exitHandler.bind(this, {exit:true}));
 
 //catches uncaught exceptions
-process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
+process.on('uncaughtException', exitHandler.bind(this, {exit:true}));

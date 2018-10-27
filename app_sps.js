@@ -9,6 +9,8 @@ const helpers = require('./helpers');
 
 const passholderModel = require('./models/passholder');
 
+let updateCount = 0;
+
 
 class AppSPS {
 
@@ -66,13 +68,14 @@ class AppSPS {
             } )
         ])
             .then(async (done) => {
-                this.models.Passholder.findAll({ where: {
+                /*this.models.Passholder.findAll({ where: {
                     masterlistId: {
                         [this.sequelize.Op.gt]: 0
                       }
                 }}).then( (some) => {
                     console.log(`There are ${some.length} records in the DB`)
-                })
+                })*/
+
                 let phPromises = this.masterlist.passholders.reduce((acc, ph) => {
                     acc.push(new Promise((resolve, reject) => {
                             this.models.Passholder.findOrBuild({
@@ -123,32 +126,33 @@ class AppSPS {
                 console.error('Unable to connect to the database:', err);
             })
 
-        this.models.Passholder.findAll({where: {photo: null}}).then(passholders => {
+        let maxFetch = 100;
+        let currentFetch = 0;
+
+        this.models.Passholder.findAll({where: {photo: null, printed: false}}).then(passholders => {
 
             passholders.map(async (ph, i) => {
 
-                let noImport = this.config.get('photos.no_import');
+                if (currentFetch >= maxFetch)
+                    return;
+                
+                
+
+                let noImport = this.config.get('photos.dont_import');
                 let photoSource = ph.photoSource;
 
                 // photoSource contains a keyword which mentions to not attempt importing a photo
-                if (photoSource != null && noImport.includes(photoSource)) {
-                    return;
+                for (let refuse of noImport) {
+                    if (photoSource != null && photoSource.startsWith(refuse))
+                        return;
                 }
+
+                //Rate limiting
+                this.updateCount++;
 
                 // It is a URL and need to retrieve BLOB
                 if (helpers.isURL(photoSource)) {
                     try {
-                        /*let blob = await blobUtil.imgSrcToBlob(photoSource);
-                        ph.update({
-                            photo: blob
-                        });*/
-                        /*request.get(photoSource, function (error, response, body) {
-                            if (!error && response.statusCode == 200) {
-                                let data = new Buffer(body).toString('base64');
-                                let byte[] decodedByte = Base64.decode(data, 0);
-                                console.log(data);
-                            }
-                        });*/
                         (async () => {
                             let res = await fetch(photoSource);
                             let blob = await res.buffer();
@@ -157,44 +161,34 @@ class AppSPS {
                             }).then((some) => {
 
                             });
-
                         })()
                     } catch (e) {
                         console.error(e);
                         return;
                     }
-
                 }
 
                 try {
                     let photo = await photos.findPhoto(ph.firstName, ph.lastName, this.config.get('photos.folders'));
+                    
                     let blob = await photos.toBlob(photo[0]);
+                    
+                    currentFetch++;
+
                     ph.update({
                         photo: blob
-                    });
+                    }).then((updated) => {
+                        console.log(`Added photo for (${updated.masterlistId}) ${updated.firstName} ${updated.lastName}`);
+                      })
+                      .catch( (e) => {
+                          console.error(e);
+                      });
                     return;
 
                 } catch (e) {
                     // non critical error. Photo not found
+                    //console.error(e);
                 }
-
-
-                /*photos.findPhoto(ph.firstName, ph.lastName, this.config.get('photos.folders')).then(
-                    (photo) => {
-                        photos.toBlob(photo[0]).then( blob => {
-
-
-                            let stop;
-                        }, err => {
-                            console.error(`Error trying to convert ${photo[0]} to Blob`);
-                        });
-                    },
-                    (err) => {
-                        //console.error(err);
-                    }
-                );*/
-
-
             });
         })
     }

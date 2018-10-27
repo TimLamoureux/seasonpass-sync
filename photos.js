@@ -13,7 +13,7 @@ async function findPhoto(first_name, last_name, where = []) {
             findPhotoFromDisk(first_name, last_name, location).then( files => {
                 // Good job, we found some photos for this passholder!
                 if (files.length > 0) {
-                    console.log(`Files: ${files}`);
+                    //console.log(`Files: ${files}`);
                     resolve(files);
                 }
                 else {
