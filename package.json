@@ -28,6 +28,7 @@
     "start": "node main.js",
     "build-package": "pkg package.json",
     "pkg": "pkg --out-path './build-pkg/' --debug package.json > ./build-pkg/build.log",
+    "pkg-win": "pkg --out-path './build-pkg/' --targets win-x64 --debug package.json > ./build-pkg/build.log",
     "nexe": "export PYTHON=python2.7; nexe main.js -o './build-nexe/seasonpass-sync' --target 'linux-x64-10.11.0' > build-nexe/build.log",
     "nexe-win": "export PYTHON=python2.7; nexe main.js -o './build-nexe/seasonpass-sync.exe' --target 'windows-x64-10.11.0' > build-nexe/build.log"
   },

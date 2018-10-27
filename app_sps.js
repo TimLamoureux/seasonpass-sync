@@ -82,11 +82,6 @@ class AppSPS {
                                 }
                             }).then((found) => {
                                 // found[1] is same as found[0].isNewRecord
-                                //TODO: Remove me in the future
-                                if (found[0].dataValues.masterlistId == 938 || 
-                                    found[0].dataValues.masterlistId == 939 ) {
-                                    let stop;
-                                }
 
                                 if (found[0].isNewRecord) {
                                     found[0].dataValues = Object.assign(found[0].dataValues, ph);
