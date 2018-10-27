@@ -126,18 +126,24 @@ class AppSPS {
                 console.error('Unable to connect to the database:', err);
             })
 
-        let maxFetch = 100;
+
+        // How Many images have been fetched
         let currentFetch = 0;
 
-        this.models.Passholder.findAll({where: {photo: null, printed: false}}).then(passholders => {
-
+        this.models.Passholder.findAll({
+            where: {
+                photo: null, 
+                printed: false,
+                photoSource: {
+                    [this.sequelize.Op.notIn]: this.config.get('photos.dont_import')
+                }
+            }, 
+            limit: 300
+        })
+        .then(passholders => {
+            console.log(`Fetched ${passholders.length} passholders to look for pictures`);
             passholders.map(async (ph, i) => {
-
-                if (currentFetch >= maxFetch)
-                    return;
                 
-                
-
                 let noImport = this.config.get('photos.dont_import');
                 let photoSource = ph.photoSource;
 
@@ -175,14 +181,18 @@ class AppSPS {
                     
                     currentFetch++;
 
+                    // TODO: Fix me. Hacked to slow down updates in DB
+
                     ph.update({
                         photo: blob
                     }).then((updated) => {
                         console.log(`Added photo for (${updated.masterlistId}) ${updated.firstName} ${updated.lastName}`);
-                      })
-                      .catch( (e) => {
-                          console.error(e);
-                      });
+                        })
+                        .catch( (e) => {
+                            console.error(e);
+                        });
+
+
                     return;
 
                 } catch (e) {

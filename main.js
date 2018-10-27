@@ -35,16 +35,12 @@ program
 program
     .command('photo [import|export]',)
     .description('Import or Export season pass photos into Card DB')
-    .action(async (action, options) => {
+    .action((action, options) => {
         // TODO: Update action to var
-        await app.photo( {action: "import", options: options} );
-        console.log(`Attempted ${app.updateCount} photo updates`)
+        app.photo( {action: "import", options: options} );
     });
 
 program.parse(process.argv);
-
-
-
 
 
 function exitHandler(options, exitCode) {
